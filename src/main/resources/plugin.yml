@@ -1,0 +1,13 @@
+name: Security
+version: '${project.version}'
+main: david.security.Security
+api-version: 1.19
+authors: [ DWAA ]
+description: You can set up sensors to dm people on discord if someone comes by
+commands:
+  setcamera:
+    description: sets camera where u are
+
+
+softdepend:
+  [DiscordSRV]
