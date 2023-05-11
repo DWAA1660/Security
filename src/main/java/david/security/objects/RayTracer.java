@@ -3,6 +3,7 @@ package david.security.objects;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import org.bukkit.Location;
 import org.bukkit.block.Block;
@@ -34,7 +35,7 @@ public class RayTracer {
             int x = (int) Math.floor(pos.getX());
             int y = (int) Math.floor(pos.getY());
             int z = (int) Math.floor(pos.getZ());
-            Block block = pos.getWorld().getBlockAt(x, y, z);
+            Block block = Objects.requireNonNull(pos.getWorld()).getBlockAt(x, y, z);
 
             // Check if the block is solid
             if (block.getType().isSolid()) {

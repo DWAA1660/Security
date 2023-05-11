@@ -3,7 +3,10 @@ package david.security.events;
 import com.mongodb.BasicDBObject;
 import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
+import com.mongodb.client.MongoCollection;
 import david.security.objects.mongo;
+import org.bson.Document;
+import org.bson.conversions.Bson;
 import org.bukkit.ChatColor;
 import org.bukkit.Location;
 import org.bukkit.Material;
@@ -25,27 +28,26 @@ import java.util.List;
 import java.util.Objects;
 
 public class OnCameraChange implements Listener {
-    DBCollection collection = mongo.connect("cameras");
+    MongoCollection collection = mongo.connect("cameras");
 
     @EventHandler
     public void onPlaceCamera(BlockPlaceEvent event) {
         if (event.getBlockPlaced().getType() == Material.PETRIFIED_OAK_SLAB) {
             Block block = event.getBlock();
             Location location = block.getLocation();
-//            Location locationFinal = new Location(block.getWorld(), location.getBlockX(), location.getBlockY() + 0.5, location.getBlockZ() + 0.1);
             String message = String.valueOf(event.getPlayer().getUniqueId()) + location.getBlockX() + location.getBlockY() + location.getBlockZ();
-            DBObject data = new BasicDBObject("_id", message)
+            Document data = new Document("_id", message)
                     .append("x", location.getBlockX())
                     .append("y", location.getBlockY() + 1.1)
                     .append("y2", location.getBlockY() -1.01)
                     .append("z", location.getBlockZ())
                     .append("world", block.getWorld().getName())
                     .append("uuid", event.getPlayer().getUniqueId().toString());
-            spawnSlime(location, data, block.getWorld(), collection);
+            OnCameraChange.spawnSlime(location, data, block.getWorld(), collection);
         }
     }
 
-    public static void spawnSlime(Location location, DBObject data, World world, DBCollection collection) {
+    public static void spawnSlime(Location location, Document data, World world, MongoCollection<Document> collection) {
         Location location1 = new Location(world, location.getBlockX(), location.getBlockY() + 1.1, location.getBlockZ());
         Slime cameraSlime = world.spawn(location1, Slime.class);
         cameraSlime.setInvisible(true);
@@ -66,9 +68,7 @@ public class OnCameraChange implements Listener {
         cameraSlime2.setGravity(false);
         cameraSlime2.setCollidable(false);
 
-
-
-        collection.insert(data);
+        collection.insertOne(data);
     }
 
     @EventHandler
@@ -122,7 +122,7 @@ public class OnCameraChange implements Listener {
                     slime.setHealth(0);
                 }
             }
-            collection.remove(data);
+            collection.deleteOne((Bson) data);
         }
 
 

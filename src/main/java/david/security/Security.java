@@ -27,7 +27,7 @@ public class Security extends JavaPlugin {
         this.getConfig().options().copyDefaults(true);
         this.saveConfig();
 
-        this.getCommand("setcamera").setExecutor(new setCammera());
+//        this.getCommand("setcamera").setExecutor(new setCammera());
         System.out.println("DWAAS PLUGIN GOT ENABLED AHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHh");
         getServer().getPluginManager().registerEvents(new OnCameraChange(), this);
         BukkitTask getNearPlayers = new getNearPlayers(this).runTaskTimer(this, 100L, 100);
@@ -35,6 +35,7 @@ public class Security extends JavaPlugin {
 
         ItemStack item = new ItemStack(Material.PETRIFIED_OAK_SLAB);
         ItemMeta meta = item.getItemMeta();
+        assert meta != null;
         meta.setDisplayName("Camera");
         item.setItemMeta(meta);
 
