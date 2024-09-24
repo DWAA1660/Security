@@ -1,9 +1,8 @@
 package david.security.events;
 
 import com.mongodb.BasicDBObject;
-import com.mongodb.DBCollection;
 import com.mongodb.DBObject;
-import com.mongodb.client.MongoCollection;
+import david.security.Security;
 import david.security.objects.mongo;
 import org.bson.Document;
 import org.bson.conversions.Bson;
@@ -13,8 +12,6 @@ import org.bukkit.Material;
 import org.bukkit.World;
 import org.bukkit.block.Block;
 import org.bukkit.entity.Entity;
-import org.bukkit.entity.EntityType;
-import org.bukkit.entity.LivingEntity;
 import org.bukkit.entity.Slime;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
@@ -24,30 +21,28 @@ import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.inventory.ItemStack;
 import org.bukkit.inventory.meta.ItemMeta;
 
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.util.List;
 import java.util.Objects;
+import java.util.logging.Logger;
 
-public class OnCameraChange implements Listener {
-    MongoCollection collection = mongo.connect("cameras");
+import static david.security.Security.connection;
+
+public class onCameraChange implements Listener {
 
     @EventHandler
-    public void onPlaceCamera(BlockPlaceEvent event) {
+    public void onPlaceCamera(BlockPlaceEvent event) throws SQLException {
         if (event.getBlockPlaced().getType() == Material.PETRIFIED_OAK_SLAB) {
             Block block = event.getBlock();
             Location location = block.getLocation();
-            String message = String.valueOf(event.getPlayer().getUniqueId()) + location.getBlockX() + location.getBlockY() + location.getBlockZ();
-            Document data = new Document("_id", message)
-                    .append("x", location.getBlockX())
-                    .append("y", location.getBlockY() + 1.1)
-                    .append("y2", location.getBlockY() -1.01)
-                    .append("z", location.getBlockZ())
-                    .append("world", block.getWorld().getName())
-                    .append("uuid", event.getPlayer().getUniqueId().toString());
-            OnCameraChange.spawnSlime(location, data, block.getWorld(), collection);
+
+            onCameraChange.spawnSlime(location, block.getWorld(), event.getPlayer().getUniqueId().toString());
         }
     }
 
-    public static void spawnSlime(Location location, Document data, World world, MongoCollection<Document> collection) {
+    public static void spawnSlime(Location location, World world, String uuid) throws SQLException {
         Location location1 = new Location(world, location.getBlockX(), location.getBlockY() + 1.1, location.getBlockZ());
         Slime cameraSlime = world.spawn(location1, Slime.class);
         cameraSlime.setInvisible(true);
@@ -58,7 +53,7 @@ public class OnCameraChange implements Listener {
         cameraSlime.setGravity(false);
         cameraSlime.setCollidable(false);
 
-        Location location2 = new Location(location.getWorld(), location.getBlockX(), location.getBlockY() -1.01, location.getBlockZ());
+        Location location2 = new Location(location.getWorld(), location.getBlockX(), location.getBlockY() - 1.01, location.getBlockZ());
         Slime cameraSlime2 = world.spawn(location2, Slime.class);
         cameraSlime2.setInvisible(true);
         cameraSlime2.setInvulnerable(true);
@@ -68,16 +63,28 @@ public class OnCameraChange implements Listener {
         cameraSlime2.setGravity(false);
         cameraSlime2.setCollidable(false);
 
-        collection.insertOne(data);
-    }
+        String insertCameraDataSQL = "INSERT INTO cameras (x, y1, y2, z, world, uuid) VALUES (?, ?, ?, ?, ?, ?)";
 
+        try (PreparedStatement stmt = connection.prepareStatement(insertCameraDataSQL)) {
+            stmt.setDouble(1, location.getBlockX());
+            stmt.setDouble(2, location.getBlockY() + 1.1);
+            stmt.setDouble(3, location.getBlockY() - 1.01);
+            stmt.setDouble(4, location.getBlockZ());
+            stmt.setString(5, world.getName());
+            stmt.setString(6, uuid); // Replace with the player's UUID
+
+            stmt.executeUpdate();
+        } catch (SQLException e) {
+            Logger.getLogger("Security").info(e.toString());
+        }
+
+    }
     @EventHandler
     public void OnPlayerJoin(PlayerJoinEvent event) {
-        event.getPlayer().sendMessage(ChatColor.RED + "Welcome to geeksmp you bozo (from DWAA please give me money so i dont go broke hosting this)");
-    }
+        }
 
     @EventHandler
-    public void cameraBreakEvent(BlockBreakEvent event) {
+    public void cameraBreakEvent(BlockBreakEvent event) throws SQLException {
 
 
         Block block = event.getBlock();
@@ -85,14 +92,10 @@ public class OnCameraChange implements Listener {
             event.setDropItems(false);
             ItemStack camera = new ItemStack(Material.PETRIFIED_OAK_SLAB);
             ItemMeta meta = camera.getItemMeta();
+            assert meta != null;
             meta.setDisplayName("Camera");
             camera.setItemMeta(meta);
             Objects.requireNonNull(block.getLocation().getWorld()).dropItem(block.getLocation(), camera);
-
-            DBObject data = new BasicDBObject("x", block.getLocation().getBlockX())
-                    .append("y", block.getLocation().getBlockY() + 1.1)
-                    .append("z", block.getLocation().getBlockZ())
-                    .append("world", block.getLocation().getWorld().getName());
 
             List<Entity> entities = block.getWorld().getEntities();
 
@@ -122,9 +125,18 @@ public class OnCameraChange implements Listener {
                     slime.setHealth(0);
                 }
             }
-            collection.deleteOne((Bson) data);
-        }
+            String deleteSQL = "DELETE FROM cameras WHERE x = ? AND y1 = ? AND z = ?"; // Replace with your table name and column name
 
+            try (PreparedStatement preparedStatement = connection.prepareStatement(deleteSQL)) {
+                // Set the parameter for the DELETE statement
+                preparedStatement.setDouble(1, block.getLocation().getBlockX());
+                preparedStatement.setDouble(2, block.getLocation().getBlockY() + 1.1);
+                preparedStatement.setDouble(3, block.getLocation().getBlockZ());
+
+                preparedStatement.executeUpdate();
+
+            }
+        }
 
     }
 }

@@ -11,12 +11,20 @@ import org.bukkit.inventory.ShapedRecipe;
 import org.bukkit.inventory.meta.ItemMeta;
 import org.bukkit.plugin.java.JavaPlugin;
 
-import david.security.events.OnCameraChange;
+import david.security.events.onCameraChange;
 import org.bukkit.scheduler.BukkitTask;
 
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.logging.Logger;
 
 public class Security extends JavaPlugin {
+
+    public static Connection connection;
+
+
     public static Security instance;
 
     @Override
@@ -26,10 +34,16 @@ public class Security extends JavaPlugin {
 
         this.getConfig().options().copyDefaults(true);
         this.saveConfig();
+            try {
+                connection = DriverManager.getConnection("jdbc:sqlite:./plugins/Security/database.db");
+            } catch (SQLException e) {
+                throw new RuntimeException(e);
+            }
+
 
 //        this.getCommand("setcamera").setExecutor(new setCammera());
-        System.out.println("DWAAS PLUGIN GOT ENABLED AHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHHh");
-        getServer().getPluginManager().registerEvents(new OnCameraChange(), this);
+        LOGGER.info("Security cameras got enabled");
+        getServer().getPluginManager().registerEvents(new onCameraChange(), this);
         BukkitTask getNearPlayers = new getNearPlayers(this).runTaskTimer(this, 100L, 100);
 
 
@@ -46,6 +60,17 @@ public class Security extends JavaPlugin {
         recipe.setIngredient('E', Material.ENDER_EYE);
         recipe.setIngredient('G', Material.GLASS);
         Bukkit.addRecipe(recipe);
+
+
+        try {
+
+            Statement statement = connection.createStatement();
+            statement.execute("CREATE TABLE IF NOT EXISTS cameras (x REAL, y1 REAL, y2 REAL, z REAL, world TEXT, uuid TEXT)");
+
+
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override

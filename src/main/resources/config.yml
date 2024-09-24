@@ -1,3 +1,2 @@
-username: "username"
-password: "password"
-mongo_connection_string: "mongodb+srv://string from mongo atlas"
+owner-triggers-camera: false
+# if true the camera will send dm even if it is camera owner usefull for debugging
